@@ -12,5 +12,9 @@ For OData V4:
 
 <h3>Why PragmatiQaDataJS ?</h3>
 ------------------------------------------------------------------------------------------------------------------------
-I needed to provide a basic/partial support in <a href="https://chrome.google.com/webstore/developer/stats/hpooflanfopjepihkcjjfeonlnhfnmpp">XOData : OData Visualizer and Explorer" Chrome App.</a> .You can take a "Free Trial of App" to explore example V4 services provided by OData.org. Those are available in the service list drop-down in Chrome App. After checking, if you think this adapted version of dataJS could be useful for your simple applications/OData services till a JavaScript library for proper V4 support is available, then feel free to use it.
+I needed to provide some basic/partial support in <a href="https://chrome.google.com/webstore/developer/stats/hpooflanfopjepihkcjjfeonlnhfnmpp">XOData : OData Visualizer and Explorer" Chrome App.</a> . The Chrome App is an improved version of the tool that was originally introduced through a blog post on <a href="http://www.odata.org/blog/online-visualizationexploration-of-odata-services-xodata/"> OData.org </a>.
+
+You can take a "Free Trial of App" to explore example V4 services provided by OData.org. Those are available in the service list drop-down in Chrome App. After checking, if you think this adapted version of dataJS could be useful for your simple applications/OData services till a JavaScript library for proper V4 support is available, then feel free to modify/use it as per the original license.
+
+If you want to compare prag-datajs with original dataJS to see the code change - Please see the version history - Original dataJS ( but renamed ) was commited as initial version so you can easily compere the changes with the version with basic OData V4 support. Also changes are marked with PragmatiQa(Ram) .
 
