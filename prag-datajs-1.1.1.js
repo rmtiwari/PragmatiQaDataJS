@@ -12,11 +12,18 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // datajs.js
+///////////////////////////////////////////////////////////
+/* For Amended parts 
+Copyright (c) PragmatiQa Ltd. 
+All rights reserved. */
+///////////////////////////////////////////////////////////
 
 (function (window, undefined) {
 
     var datajs = window.datajs || {};
     var odata = window.OData || {};
+
+    var globalVersion = "3.0";  // Added by PragmatiQa(Ram) - Experimental Support for V4 
 
     // AMD support
     if (typeof define === 'function' && define.amd) {
@@ -239,7 +246,14 @@
                 }
             }
             if (result.scheme) {
-                result.isAbsolute = true;
+                // http check added by PragmatiQa(Ram)
+                if (result.scheme.slice(0,4).toUpperCase() === "HTTP" ){
+                    result.isAbsolute = true;
+                } else {
+                // wrongly identifed as scheme , it should be path
+                  result.path = uri;
+                  result.scheme = "";
+                }
             }
         }
 
@@ -2515,7 +2529,9 @@
     odata.defaultHttpClient = {
         callbackParameterName: "$callback",
 
-        formatQueryString: "$format=json",
+        formatQueryString: "$format=json",  
+        // Changed by PragamtiQA(Ram) - Atom only
+        // formatQueryString: "$format=atom",
 
         enableJsonpCallback: false,
 
@@ -2669,8 +2685,8 @@
     };
 
 
-
-    var MAX_DATA_SERVICE_VERSION = "3.0";
+    // Changed by PragmatiQa(Ram) - experimental support for V4
+    var MAX_DATA_SERVICE_VERSION = "4.0";
 
     var contentType = function (str) {
         /// <summary>Parses a string into an object with media type and properties.</summary>
@@ -2782,7 +2798,7 @@
         /// <summary>Gets the value of the DataServiceVersion header from a request or response.</summary>
         /// <param name="requestOrResponse">Object representing a request or a response.</param>
         /// <returns type="String">Data service version; undefined if the header cannot be found.</returns>
-
+        // console.log(requestOrResponse);
         var value = getRequestOrResponseHeader(requestOrResponse, "DataServiceVersion");
         if (value) {
             var matches = versionRE.exec(value);
@@ -2790,6 +2806,17 @@
                 return matches[1];
             }
         }
+
+
+        /// By PragmatiQa(Ram) - experimental support for V4
+        value = getRequestOrResponseHeader(requestOrResponse, "OData-Version");
+        if (value) {
+            var matches = versionRE.exec(value);
+            if (matches && matches.length) {
+                return matches[1];
+            }
+        }        
+        ///
 
         // Fall through and return undefined.
     };
@@ -2802,6 +2829,7 @@
 
         // The following check isn't as strict because if cType.mediaType = application/; it will match an accept value of "application/xml";
         // however in practice we don't not expect to see such "suffixed" mimeTypes for the handlers.
+
         return handler.accept.indexOf(cType.mediaType) >= 0;
     };
 
@@ -2819,6 +2847,29 @@
 
         var cType = getContentType(response);
         var version = getDataServiceVersion(response) || "";
+
+        // Addded by PragmatiQa(Ram) - experimntal support V4
+        globalVersion = version;
+
+        if (version === "4.0"){
+            // For Feed
+            odataXmlNs = "http://docs.oasis-open.org/odata/ns/data";
+            odataMetaXmlNs = "http://docs.oasis-open.org/odata/ns/metadata";
+            odataRelatedPrefix = "http://docs.oasis-open.org/odata/ns/related/";
+            odataScheme = "http://docs.oasis-open.org/odata/ns/scheme";
+
+            // For metadata
+            // edmxNs = "http://docs.oasis-open.org/odata/ns/edmx";    // http://schemas.microsoft.com/ado/2007/06/edmx - will not work    
+        } else {       
+            odataXmlNs = adoDs;                             // http://schemas.microsoft.com/ado/2007/08/dataservices
+            odataMetaXmlNs = adoDs + "/metadata";           // http://schemas.microsoft.com/ado/2007/08/dataservices/metadata
+            odataRelatedPrefix = adoDs + "/related/";       // http://schemas.microsoft.com/ado/2007/08/dataservices/related
+            odataScheme = adoDs + "/scheme";                // http://schemas.microsoft.com/ado/2007/08/dataservices/scheme
+
+        }
+
+        ///
+      
         var body = response.body;
 
         if (!assigned(body)) {
@@ -2826,6 +2877,7 @@
         }
 
         if (handlerAccepts(handler, cType)) {
+
             var readContext = createReadWriteContext(cType, version, context, handler);
             readContext.response = response;
             response.data = parseCallback(handler, body, readContext);
@@ -3700,6 +3752,10 @@
 
     var edmNs3 = ado + "2009/11/edm";                   // http://schemas.microsoft.com/ado/2009/11/edm
 
+    // Added by PragmatiQa(Ram) - Experimental Support for V4
+    var edmNsV4 = "http://docs.oasis-open.org/odata/ns/edm";      // http://schemas.microsoft.com/ado/2006/04/edm
+    //
+
     var odataXmlNs = adoDs;                             // http://schemas.microsoft.com/ado/2007/08/dataservices
     var odataMetaXmlNs = adoDs + "/metadata";           // http://schemas.microsoft.com/ado/2007/08/dataservices/metadata
     var odataRelatedPrefix = adoDs + "/related/";       // http://schemas.microsoft.com/ado/2007/08/dataservices/related
@@ -3707,6 +3763,10 @@
 
     var odataPrefix = "d";
     var odataMetaPrefix = "m";
+
+
+
+
 
     var createAttributeExtension = function (domNode, useNamespaceURI) {
         /// <summary>Creates an extension object for the specified attribute.</summary>
@@ -3833,7 +3893,16 @@
                 }
 
                 if (localName === "type") {
-                    type = value;
+
+                    // Added by PragamtiQa(Ram) - Experimental V4 Support
+                    // type = value;
+
+                    if (globalVersion == "4.0"){
+                        type = "Edm." + value;
+                    } else {    
+                        type = value;
+                    }
+                    
                     return;
                 }
             }
@@ -5998,7 +6067,8 @@
                nsURI === edmNs1_2 ||
                nsURI === edmNs2a ||
                nsURI === edmNs2b ||
-               nsURI === edmNs3;
+               nsURI === edmNs3  ||
+               nsURI === edmNsV4;
     };
 
     var parseConceptualModelElement = function (element) {
@@ -6012,13 +6082,15 @@
         if (!elementSchema) {
             return null;
         }
-
+        // console.log(nsURI);
+        // console.log(elementSchema.ns);
         if (elementSchema.ns) {
             if (nsURI !== elementSchema.ns) {
-                return null;
+            	//  Ram(PragmatiQa) - experimental support for 4.0
+                // return null;   //commented
             }
         } else if (!isEdmNamespace(nsURI)) {
-            return null;
+            return null;     //commented
         }
 
         var item = {};
@@ -6105,6 +6177,7 @@
 
         var doc = xmlParse(text);
         var root = xmlFirstChildElement(doc);
+
         return parseConceptualModelElement(root) || undefined;
     };
 
@@ -7092,7 +7165,10 @@
         ///     Object with kind and type fields. Null if there is no metadata annotation or the payload info cannot be obtained..
         /// </returns>
 
-        var metadataUri = data[metadataAnnotation];
+//      Changed by PragmatiQa(Ram) - V4 support for JSON
+//      var metadataUri = data[metadataAnnotation];
+        var metadataAnnotationV4 = "@odata.context";
+        var metadataUri = data[metadataAnnotation] || data[metadataAnnotationV4];
         if (!metadataUri || typeof metadataUri !== "string") {
             return null;
         }
@@ -7512,8 +7588,17 @@
         /// <returns type="Boolean">True is the content type indicates a json light payload. False otherwise.</returns>
 
         if (contentType) {
-            var odata = contentType.properties.odata;
-            return odata === "nometadata" || odata === "minimalmetadata" || odata === "fullmetadata";
+            // Changed by PragmatiQa(Ram) : JSON V4 support
+            
+            if (globalVersion === "4.0"){
+                 var odataMetadata = contentType.properties["odata.metadata"];
+                 // Changed by PragmatiQa(Ram) : JSON V4 support
+                 return odataMetadata === "no" || odataMetadata === "minimal";
+
+            } else {
+                 var odata = contentType.properties.odata;
+                 return odata === "nometadata" || odata === "minimalmetadata" || odata === "fullmetadata";
+            }
         }
         return false;
     };
@@ -7734,7 +7819,8 @@
     };
 
     var jsonHandler = handler(jsonParser, jsonSerializer, jsonMediaType, MAX_DATA_SERVICE_VERSION);
-    jsonHandler.recognizeDates = false;
+    // Changed By PragmatiQa(Ram) : recognizeDates
+    jsonHandler.recognizeDates = true;
     jsonHandler.useJsonLight = false;
     jsonHandler.inferJsonLightFeedAsObject = false;
 
@@ -8101,7 +8187,7 @@
         /// <param name="handlerMethod" type="String">Name of handler method to invoke.</param>
         /// <param name="requestOrResponse" type="Object">request/response argument for delegated call.</param>
         /// <param name="context" type="Object">context argument for delegated call.</param>
-
+        
         var i, len;
         for (i = 0, len = handlers.length; i < len && !handlers[i][handlerMethod](requestOrResponse, context); i++) {
         }
@@ -8140,7 +8226,8 @@
         },
 
         maxDataServiceVersion: MAX_DATA_SERVICE_VERSION,
-        accept: "application/atomsvc+xml;q=0.8, application/json;odata=fullmetadata;q=0.7, application/json;q=0.5, */*;q=0.1"
+        // Added by PragmatiQa(Ram) - application/atom+xml;q=0.9, 
+        accept: "application/atom+xml;q=0.9, application/atomsvc+xml;q=0.8, application/json;odata=fullmetadata;q=0.7, application/json;q=0.5, */*;q=0.1"
     };
 
     odata.defaultMetadata = [];
